@@ -25,7 +25,7 @@ services:
     image: redis:alpine
     container_name: flowsint-redis-dev
     ports:
-      - "6379:6379"
+      - "${REDIS_HOST_PORT:-6380}:6379" # 6379 is often taken by a local Redis
     networks:
       - flowsint_network
     healthcheck:
