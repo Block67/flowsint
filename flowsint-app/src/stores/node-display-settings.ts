@@ -11,37 +11,25 @@ export type ItemType =
   | 'organization'
   | 'individual'
   | 'socialaccount'
-  | 'asn'
-  | 'cidr'
   | 'cryptowallet'
   | 'cryptowallettransaction'
   | 'cryptonft'
   | 'website'
-  | 'port'
   | 'phrase'
   | 'breach'
   | 'credential'
   | 'device'
   | 'document'
   | 'file'
-  | 'malware'
-  | 'sslcertificate'
   | 'location'
   | 'affiliation'
   | 'alias'
   | 'bankaccount'
   | 'creditcard'
-  | 'dnsrecord'
-  | 'gravatar'
   | 'leak'
   | 'message'
   | 'reputationscore'
   | 'riskprofile'
-  | 'script'
-  | 'session'
-  | 'webtracker'
-  | 'weapon'
-  | 'whois'
   | 'custom'
 
 export const ITEM_TYPES: ItemType[] = [
@@ -53,37 +41,25 @@ export const ITEM_TYPES: ItemType[] = [
   'organization',
   'individual',
   'socialaccount',
-  'asn',
-  'cidr',
   'cryptowallet',
   'cryptowallettransaction',
   'cryptonft',
   'website',
-  'port',
   'phrase',
   'breach',
   'credential',
   'device',
   'document',
   'file',
-  'malware',
-  'sslcertificate',
   'location',
   'affiliation',
   'alias',
   'bankaccount',
   'creditcard',
-  'dnsrecord',
-  'gravatar',
   'leak',
   'message',
   'reputationscore',
   'riskprofile',
-  'script',
-  'session',
-  'webtracker',
-  'weapon',
-  'whois',
   'custom'
 ]
 
@@ -97,37 +73,25 @@ export const TYPE_TO_ICON: Record<string, keyof typeof LucideIcons> = {
   organization: 'Building2',
   individual: 'User',
   socialaccount: 'Share2',
-  asn: 'Network',
-  cidr: 'Network',
   cryptowallet: 'Wallet',
   cryptowallettransaction: 'ArrowRightLeft',
   cryptonft: 'Image',
   website: 'Globe',
-  port: 'Plug',
   phrase: 'Quote',
   breach: 'ShieldAlert',
   credential: 'Key',
   device: 'Smartphone',
   document: 'FileText',
   file: 'File',
-  malware: 'Bug',
-  sslcertificate: 'Lock',
   location: 'MapPin',
   affiliation: 'Link2',
   alias: 'UserCog',
   bankaccount: 'Landmark',
   creditcard: 'CreditCard',
-  dnsrecord: 'Database',
-  gravatar: 'UserCircle',
   leak: 'Droplet',
   message: 'MessageSquare',
   reputationscore: 'Star',
   riskprofile: 'AlertTriangle',
-  script: 'FileCode',
-  session: 'Clock',
-  webtracker: 'Target',
-  weapon: 'Sword',
-  whois: 'Info',
   default: 'FileQuestion',
   custom: 'Cog'
 }
@@ -141,37 +105,25 @@ const DEFAULT_COLORS: Record<ItemType, string> = {
   organization: '#BCA18A', // taupe clair
   individual: '#4C8EDA', // bleu moyen
   socialaccount: '#A76DAA', // mauve
-  asn: '#D97474', // pêche rosée
-  cidr: '#80BF80', // vert menthe
   cryptowallet: '#D4B030', // or clair
   cryptowallettransaction: '#BFA750', // or chaud
   cryptonft: '#A5BF50', // vert lime doux
   website: '#D279A6', // rose pastel
-  port: '#4CB5DA', // cyan clair
   phrase: '#BFA77A', // beige chaud
   breach: '#CC7A7A', // rose chaud
   credential: '#D4B030', // doré doux
   device: '#E3A857', // orange sable
   document: '#8F9CA3', // gris bleuté
   file: '#8F9CA3', // gris bleuté
-  malware: '#4AA29E', // teal saturé
-  sslcertificate: '#BFAF80', // sable chaud
   location: '#E57373', // rouge rosé
   affiliation: '#66A892', // vert sauge
   alias: '#A36FA3', // violet
   bankaccount: '#D4B030', // or clair
   creditcard: '#285E8E', // bleu profond
-  dnsrecord: '#BFAF80', // vert teal clair
-  gravatar: '#6CB7CA', // cyan clair
   leak: '#7C9CBF', // bleu acier
   message: '#897FC9', // violet lavande
   reputationscore: '#6FA8DC', // bleu clair
   riskprofile: '#D97474', // rouge doux
-  script: '#A36FA3', // violet doux
-  session: '#A8BF50', // lime atténué
-  webtracker: '#C7BF50', // jaune doux
-  weapon: '#E98973', // corail brun
-  whois: '#9B6F9B', // violet doux
   custom: '#9B6F9B'
 }
 

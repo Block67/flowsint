@@ -306,15 +306,9 @@ class TypeRegistryService(BaseService):
                 "label": "Network",
                 "fields": [],
                 "children": [
-                    ("ASN", "number", None),
-                    ("CIDR", "network", None),
                     ("Domain", "domain", None),
                     ("Website", "url", None),
                     ("Ip", "address", None),
-                    ("Port", "number", None),
-                    ("DNSRecord", "name", "dnsrecord"),
-                    ("SSLCertificate", "subject", "sslcertificate"),
-                    ("WebTracker", "name", "webtracker"),
                 ],
             },
             {
@@ -326,10 +320,7 @@ class TypeRegistryService(BaseService):
                 "fields": [],
                 "children": [
                     ("Credential", "username", "credential"),
-                    ("Session", "session_id", "session"),
                     ("Device", "device_id", "device"),
-                    ("Malware", "name", "malware"),
-                    ("Weapon", "name", "weapon"),
                 ],
             },
             {

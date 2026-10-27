@@ -199,15 +199,6 @@ class TestEntityTypeDetection:
         # URLs should be detected as Website or similar
         assert result.total_entities == 3
 
-    def test_cidr_detection(self):
-        """Test detection of CIDR notation."""
-        txt_content = b"192.168.1.0/24\n10.0.0.0/8"
-
-        result = parse_txt(txt_content, max_preview_rows=100)
-
-        # CIDR should be detected
-        assert result.total_entities >= 1
-
     def test_username_detection(self):
         """Test detection of username entities."""
         txt_content = b"my_username\nuser123\ntest_user_name"

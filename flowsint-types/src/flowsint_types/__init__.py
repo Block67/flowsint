@@ -13,43 +13,30 @@ from pydantic import BaseModel
 from .address import Location
 from .affiliation import Affiliation
 from .alias import Alias
-from .asn import ASN
 from .bank_account import BankAccount
 from .breach import Breach
-from .cidr import CIDR
 from .credential import Credential
 from .credit_card import CreditCard
 from .device import Device
-from .dns_record import DNSRecord
 from .document import Document
 from .domain import Domain
 from .email import Email
 from .file import File
 from .flowsint_base import FlowsintType
-from .gravatar import Gravatar
 from .individual import Individual
 from .ip import Ip
 from .leak import Leak
-from .malware import Malware
 from .message import Message
 from .organization import Organization
 from .phone import Phone
 from .phrase import Phrase
-from .port import Port
 from .registry import TYPE_REGISTRY, flowsint_type, get_type, load_all_types
 from .reputation_score import ReputationScore
 from .risk_profile import RiskProfile
-from .script import Script
-from .session import Session
 from .social_account import SocialAccount
-from .ssl_certificate import SSLCertificate
-from .technology import Technology
 from .username import Username
 from .wallet import CryptoNFT, CryptoWallet, CryptoWalletTransaction
-from .weapon import Weapon
-from .web_tracker import WebTracker
 from .website import Website
-from .whois import Whois
 
 load_all_types()
 
@@ -60,43 +47,30 @@ __all__ = [
     "Location",
     "Affiliation",
     "Alias",
-    "ASN",
     "BankAccount",
     "Breach",
-    "CIDR",
     "Credential",
     "CreditCard",
     "Device",
-    "DNSRecord",
     "Document",
     "Domain",
     "Email",
     "File",
-    "Gravatar",
     "Individual",
     "Ip",
     "Leak",
-    "Malware",
     "Message",
     "Organization",
     "Phone",
     "Phrase",
-    "Port",
     "ReputationScore",
     "RiskProfile",
-    "Script",
-    "Session",
     "SocialAccount",
-    "SSLCertificate",
-    "Technology",
     "Username",
     "CryptoWallet",
     "CryptoWalletTransaction",
     "CryptoNFT",
-    "Weapon",
-    "WebTracker",
     "Website",
-    "Whois",
     # Type registry utilities (legacy)
     "TYPE_TO_MODEL",
     "get_model_for_type",
@@ -121,38 +95,25 @@ TYPE_TO_MODEL: Dict[str, Type[BaseModel]] = {
     "organization": Organization,
     "individual": Individual,
     "socialaccount": SocialAccount,
-    "asn": ASN,
-    "cidr": CIDR,
     "cryptowallet": CryptoWallet,
     "cryptowallettransaction": CryptoWalletTransaction,
     "cryptonft": CryptoNFT,
     "website": Website,
-    "port": Port,
     "phrase": Phrase,
     "breach": Breach,
     "credential": Credential,
     "device": Device,
     "document": Document,
     "file": File,
-    "malware": Malware,
-    "sslcertificate": SSLCertificate,
-    "technology": Technology,
     "location": Location,
     "affiliation": Affiliation,
     "alias": Alias,
     "bankaccount": BankAccount,
     "creditcard": CreditCard,
-    "dnsrecord": DNSRecord,
-    "gravatar": Gravatar,
     "leak": Leak,
     "message": Message,
     "reputationscore": ReputationScore,
     "riskprofile": RiskProfile,
-    "script": Script,
-    "session": Session,
-    "webtracker": WebTracker,
-    "weapon": Weapon,
-    "whois": Whois,
 }
 
 

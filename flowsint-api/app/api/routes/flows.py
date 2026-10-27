@@ -23,12 +23,9 @@ from flowsint_core.core.types import FlowBranch, FlowEdge, FlowNode, FlowStep
 from flowsint_core.utils import extract_input_schema_flow
 from flowsint_enrichers import ENRICHER_REGISTRY, load_all_enrichers
 from flowsint_types import (
-    ASN,
-    CIDR,
     CryptoNFT,
     CryptoWallet,
     CryptoWalletTransaction,
-    DNSRecord,
     Domain,
     Email,
     Individual,
@@ -36,7 +33,6 @@ from flowsint_types import (
     Organization,
     Phone,
     Phrase,
-    Port,
     SocialAccount,
     Username,
     Website,
@@ -111,11 +107,7 @@ async def get_material_list():
         extract_input_schema_flow(Domain),
         extract_input_schema_flow(Website),
         extract_input_schema_flow(Ip),
-        extract_input_schema_flow(DNSRecord),
-        extract_input_schema_flow(Port),
         extract_input_schema_flow(Phone),
-        extract_input_schema_flow(ASN),
-        extract_input_schema_flow(CIDR),
         extract_input_schema_flow(Username),
         extract_input_schema_flow(SocialAccount),
         extract_input_schema_flow(Email),

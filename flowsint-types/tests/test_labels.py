@@ -1,6 +1,4 @@
 from flowsint_types import (
-    ASN,
-    CIDR,
     Credential,
     CryptoNFT,
     CryptoWallet,
@@ -12,7 +10,6 @@ from flowsint_types import (
     Location,
     Organization,
     Phone,
-    Port,
     SocialAccount,
     Username,
     Website,
@@ -158,39 +155,6 @@ def test_social_account_label_without_display_name():
 def test_website_label():
     website = Website(url="https://www.example.com")
     assert website.nodeLabel == "https://www.example.com/"
-
-
-def test_port_label():
-    # Test with service and protocol
-    port = Port(number=80, service="http", protocol="TCP")
-    assert port.nodeLabel == "80 http (TCP)"
-
-
-def test_port_label_with_service_only():
-    # Test with service only
-    port = Port(number=443, service="https")
-    assert port.nodeLabel == "443 https"
-
-
-def test_port_label_number_only():
-    # Test with number only
-    port = Port(number=8080)
-    assert port.nodeLabel == "8080"
-
-
-def test_cidr_label():
-    cidr = CIDR(network="8.8.8.0/24")
-    assert cidr.nodeLabel == "8.8.8.0/24"
-
-
-def test_asn_label_with_name():
-    asn = ASN(asn_str="AS15169", name="Google LLC")
-    assert asn.nodeLabel == "AS15169 - Google LLC"
-
-
-def test_asn_label_without_name():
-    asn = ASN(asn_str="AS15169")
-    assert asn.nodeLabel == "AS15169"
 
 
 def test_location_label():
