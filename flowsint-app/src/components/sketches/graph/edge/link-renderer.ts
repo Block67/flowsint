@@ -105,6 +105,10 @@ export const renderLink = ({
     lineWidth = CONSTANTS.LINK_WIDTH * (linkWidth / 5)
   }
 
+  // Set by transformGraphData for transaction edges (1 = default width)
+  const amountScale: number = link.amountScale || 1
+  lineWidth *= amountScale
+
   const arrowLengthSetting = forceSettings?.linkDirectionalArrowLength?.value
   const arrowLength = rc.shouldRenderDetails
     ? arrowLengthSetting
@@ -194,7 +198,8 @@ export const renderLink = ({
     ctx.restore()
   }
 
-  if (!link.label) return
+  const label: string | undefined = link.displayLabel || link.label
+  if (!label) return
 
   // Label (only for highlighted links when zoomed in)
   if (isHighlighted && globalScale > CONSTANTS.ZOOM_EDGE_DETAIL_THRESHOLD) {
@@ -230,7 +235,7 @@ export const renderLink = ({
     ctx.font = `${linkFontSize}px Sans-Serif`
 
     // Single measureText call — reuse metrics for both width and vertical positioning
-    const metrics = ctx.measureText(link.label)
+    const metrics = ctx.measureText(label)
     const textWidth = metrics.width
     const padding = linkFontSize * CONSTANTS.PADDING_RATIO
     tempDimensions[0] = textWidth + padding
@@ -264,7 +269,7 @@ export const renderLink = ({
     const labelTextY =
       metrics.actualBoundingBoxAscent * 0.5 - metrics.actualBoundingBoxDescent * 0.5
 
-    ctx.fillText(link.label, 0, labelTextY)
+    ctx.fillText(label, 0, labelTextY)
     ctx.restore()
   }
 }

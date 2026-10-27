@@ -2,10 +2,12 @@ import { useGraphStore } from '@/stores/graph-store'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Separator } from '@/components//ui/separator'
 import TypeFilters from './type-filters'
+import TransactionFilters from './transaction-filters'
 
 const Filters = ({ children }: { children: React.ReactNode }) => {
   const filters = useGraphStore((s) => s.filters)
   const toggleTypeFilter = useGraphStore((s) => s.toggleTypeFilter)
+  const setFilters = useGraphStore((s) => s.setFilters)
 
   return (
     <Popover>
@@ -17,6 +19,8 @@ const Filters = ({ children }: { children: React.ReactNode }) => {
           <div className="space-y-1">
             <h5 className="leading-none font-medium text-sm">Filters</h5>
           </div>
+          <Separator />
+          <TransactionFilters filters={filters} setFilters={setFilters} />
           <Separator />
           <TypeFilters filters={filters} toggleTypeFilter={toggleTypeFilter} />
           {/* <Separator />

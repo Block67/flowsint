@@ -21,6 +21,7 @@ import { MergeDialog } from './graph/actions/merge-nodes'
 import { useGraphRefresh } from '@/hooks/use-graph-refresh'
 import { usePermissions } from '@/hooks/use-can'
 const RelationshipsTable = lazy(() => import('@/components/table/relationships-view'))
+const TransactionsView = lazy(() => import('@/components/table/transactions-view'))
 
 // Separate component for the drag overlay
 const DragOverlay = memo(({ isDragging }: { isDragging: boolean }) => (
@@ -144,6 +145,7 @@ const GraphPanel = ({ graphData, isLoading }: GraphPanelProps) => {
           {view === 'table' && <NodesTable />}
           {view === 'map' && <MapPanel />}
           {view === 'relationships' && <RelationshipsTable />}
+          {view === 'transactions' && <TransactionsView />}
         </div>
       </Suspense>
       <DragOverlay isDragging={isDraggingOver} />

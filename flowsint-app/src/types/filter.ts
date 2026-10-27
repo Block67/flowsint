@@ -13,7 +13,14 @@ export type RuleFilter = {
   matcher: string
 }
 
+export type TransactionFilter = {
+  from?: string | null // YYYY-MM-DD
+  to?: string | null // YYYY-MM-DD, inclusive
+  minAmount?: number | null // compared with the edge weight (USD amount when known)
+}
+
 export type Filters = {
   types: TypeFilter[]
   rules: RuleFilter[]
+  transactions?: TransactionFilter
 }

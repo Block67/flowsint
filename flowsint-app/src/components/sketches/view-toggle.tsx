@@ -1,17 +1,18 @@
-import { List, ArrowRightLeft, MapPin } from 'lucide-react'
+import { List, ArrowRightLeft, MapPin, Banknote } from 'lucide-react'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { NetworkIcon } from '../icons/network'
 
 interface ViewToggleProps {
-  view: 'graph' | 'table' | 'relationships' | 'map'
-  setView: (view: 'graph' | 'table' | 'relationships' | 'map') => void
+  view: 'graph' | 'table' | 'relationships' | 'map' | 'transactions'
+  setView: (view: 'graph' | 'table' | 'relationships' | 'map' | 'transactions') => void
 }
 
 const views = [
   { value: 'graph', icon: NetworkIcon, label: 'Graph' },
   { value: 'table', icon: List, label: 'Table' },
   { value: 'relationships', icon: ArrowRightLeft, label: 'Relationships' },
+  { value: 'transactions', icon: Banknote, label: 'Transactions' },
   { value: 'map', icon: MapPin, label: 'Map' }
 ] as const
 

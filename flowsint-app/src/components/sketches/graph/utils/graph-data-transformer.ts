@@ -48,6 +48,14 @@ export const transformGraphData = ({
     edgeGroups.get(key)!.push(edge)
   })
 
+  // Transaction edges are drawn thicker for larger amounts (log scale, so a
+  // few huge transfers don't make every other edge a hairline).
+  const maxTransactionWeight = edges.reduce(
+    (max, edge) =>
+      edge.type === 'transaction' && edge.weight && edge.weight > max ? edge.weight : max,
+    0
+  )
+
   const transformedEdges = edges.map((edge) => {
     const key = `${edge.source}-${edge.target}`
     const group = edgeGroups.get(key)!
@@ -55,9 +63,18 @@ export const transformGraphData = ({
     const groupSize = group.length
     const curvature = groupSize > 1 ? (groupIndex - (groupSize - 1) / 2) * 0.2 : 0
 
+    const isTransaction = edge.type === 'transaction'
+    const amountScale =
+      isTransaction && edge.weight && edge.weight > 0 && maxTransactionWeight > 0
+        ? 1 + (3 * Math.log1p(edge.weight)) / Math.log1p(maxTransactionWeight)
+        : 1
+
     return {
       ...edge,
       edgeLabel: edge.label,
+      // Show the amount ("1,500 XOF") rather than "TRANSACTION"
+      displayLabel: isTransaction && edge.caption ? edge.caption : edge.label,
+      amountScale,
       curvature,
       groupIndex,
       groupSize

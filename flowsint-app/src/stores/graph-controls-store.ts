@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
-type ViewType = 'graph' | 'table' | 'map' | 'relationships'
+type ViewType = 'graph' | 'table' | 'map' | 'relationships' | 'transactions'
 type LayoutType = 'force' | 'hierarchy'
 type SelectionMode = 'lasso' | 'rectangle'
 
@@ -21,7 +21,7 @@ type GraphControlsStore = {
   regenerateLayout: (layoutType: LayoutType) => void
   getViewportCenter: () => { x: number; y: number } | null
   setCurrentLayoutType: (layoutType: LayoutType) => void
-  setView: (view: 'graph' | 'table' | 'map' | 'relationships') => void
+  setView: (view: ViewType) => void
   setIsSelectorModeActive: (active: boolean) => void
   setSelectionMode: (mode: SelectionMode) => void
 }

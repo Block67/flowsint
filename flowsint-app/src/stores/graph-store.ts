@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type { GraphNode, GraphEdge, NodeProperties, ChatContextFormat, Path } from '@/types'
 import { type ActionItem } from '@/lib/action-items'
-import { Filters, TypeFilter } from '@/types/filter'
+import { Filters, TransactionFilter, TypeFilter } from '@/types/filter'
 
 interface GraphState {
   // === Graph ===
@@ -95,9 +95,32 @@ const computeFilteredNodes = (nodes: GraphNode[], filters: Filters): GraphNode[]
   return nodes.filter((node) => !types.includes(node.nodeType))
 }
 
-const computeFilteredEdges = (edges: GraphEdge[], filteredNodes: GraphNode[]): GraphEdge[] => {
+const isTransactionHidden = (edge: GraphEdge, filter: TransactionFilter | undefined) => {
+  if (!filter || edge.type !== 'transaction') return false
+  if (filter.minAmount != null && (edge.weight ?? 0) < filter.minAmount) return true
+  if (filter.from || filter.to) {
+    // Undated transactions can't be placed in a period: hide them while filtering by date
+    if (!edge.date) return true
+    const time = Date.parse(edge.date)
+    if (filter.from && time < Date.parse(filter.from)) return true
+    // `to` is a day: include the whole day
+    if (filter.to && time >= Date.parse(filter.to) + 24 * 3600 * 1000) return true
+  }
+  return false
+}
+
+const computeFilteredEdges = (
+  edges: GraphEdge[],
+  filteredNodes: GraphNode[],
+  filters?: Filters
+): GraphEdge[] => {
   const nodeIds = new Set(filteredNodes.map((n) => n.id))
-  return edges.filter((e) => nodeIds.has(e.source) && nodeIds.has(e.target))
+  return edges.filter(
+    (e) =>
+      nodeIds.has(e.source) &&
+      nodeIds.has(e.target) &&
+      !isTransactionHidden(e, filters?.transactions)
+  )
 }
 
 const computeSelectedNodesWithEdgesAsList = (
@@ -152,7 +175,7 @@ export const useGraphStore = create<GraphState>()(
       setNodes: (nodes) => {
         const { filters, edges } = get()
         const filteredNodes = computeFilteredNodes(nodes, filters)
-        const filteredEdges = computeFilteredEdges(edges, filteredNodes)
+        const filteredEdges = computeFilteredEdges(edges, filteredNodes, filters)
         // update HashMap
         const nodesMapping = new Map(nodes.map((node) => [node.id, node]))
         set({ nodes, filteredNodes, filteredEdges, nodesMapping })
@@ -160,7 +183,7 @@ export const useGraphStore = create<GraphState>()(
       setEdges: (edges) => {
         const { filters, nodes } = get()
         const filteredNodes = computeFilteredNodes(nodes, filters)
-        const filteredEdges = computeFilteredEdges(edges, filteredNodes)
+        const filteredEdges = computeFilteredEdges(edges, filteredNodes, filters)
         const edgesMapping = new Map(edges.map((edge) => [edge.id, edge]))
         const selectedNodesWithEdgesAsList = computeSelectedNodesWithEdgesAsList(
           get().selectedNodes,
@@ -179,7 +202,7 @@ export const useGraphStore = create<GraphState>()(
         nodes.push(nodeWithId)
         nodesMapping.set(nodeWithId.id, nodeWithId)
         const filteredNodes = computeFilteredNodes(nodes, filters)
-        const filteredEdges = computeFilteredEdges(edges, filteredNodes)
+        const filteredEdges = computeFilteredEdges(edges, filteredNodes, filters)
         set({
           nodes,
           currentNodeId: nodeWithId.id,
@@ -198,7 +221,7 @@ export const useGraphStore = create<GraphState>()(
         edges.push(edgeWithId)
         edgesMapping.set(edgeWithId.id, edgeWithId)
         const filteredNodes = computeFilteredNodes(nodes, filters)
-        const filteredEdges = computeFilteredEdges(edges, filteredNodes)
+        const filteredEdges = computeFilteredEdges(edges, filteredNodes, filters)
         const selectedNodesWithEdgesAsList = computeSelectedNodesWithEdgesAsList(
           get().selectedNodes,
           edgesMapping
@@ -215,7 +238,7 @@ export const useGraphStore = create<GraphState>()(
         const newEdges = edges.filter((e) => !nodeIdsSet.has(e.source) && !nodeIdsSet.has(e.target))
 
         const filteredNodes = computeFilteredNodes(newNodes, filters)
-        const filteredEdges = computeFilteredEdges(newEdges, filteredNodes)
+        const filteredEdges = computeFilteredEdges(newEdges, filteredNodes, filters)
         // update HashMap
         deleteKeys(nodesMapping, nodeIdsSet)
         set({ nodes: newNodes, edges: newEdges, filteredNodes, filteredEdges })
@@ -226,7 +249,7 @@ export const useGraphStore = create<GraphState>()(
         const edgeIdsSet = new Set(edgeIds)
         const newEdges = edges.filter((e) => !edgeIdsSet.has(e.id))
         const filteredNodes = computeFilteredNodes(nodes, filters)
-        const filteredEdges = computeFilteredEdges(newEdges, filteredNodes)
+        const filteredEdges = computeFilteredEdges(newEdges, filteredNodes, filters)
         deleteKeys(edgesMapping, edgeIdsSet)
         const selectedNodesWithEdgesAsList = computeSelectedNodesWithEdgesAsList(
           get().selectedNodes,
@@ -244,7 +267,7 @@ export const useGraphStore = create<GraphState>()(
       updateGraphData: (nodes, edges) => {
         const { filters } = get()
         const filteredNodes = computeFilteredNodes(nodes, filters)
-        const filteredEdges = computeFilteredEdges(edges, filteredNodes)
+        const filteredEdges = computeFilteredEdges(edges, filteredNodes, filters)
         const nodesMapping = new Map(nodes.map((node) => [node.id, node]))
         const edgesMapping = new Map(edges.map((edge) => [edge.id, edge]))
         const selectedNodesWithEdgesAsList = computeSelectedNodesWithEdgesAsList(
@@ -270,7 +293,7 @@ export const useGraphStore = create<GraphState>()(
         )
 
         const filteredNodes = computeFilteredNodes(updatedNodes, filters)
-        const filteredEdges = computeFilteredEdges(edges, filteredNodes)
+        const filteredEdges = computeFilteredEdges(edges, filteredNodes, filters)
 
         const newNodesMapping = new Map(nodesMapping)
         const node = newNodesMapping.get(nodeId)
@@ -296,7 +319,7 @@ export const useGraphStore = create<GraphState>()(
           edge.id === edgeId ? ({ ...edge, ...updates } as GraphEdge) : edge
         )
         const filteredNodes = computeFilteredNodes(nodes, filters)
-        const filteredEdges = computeFilteredEdges(updatedEdges, filteredNodes)
+        const filteredEdges = computeFilteredEdges(updatedEdges, filteredNodes, filters)
         const edge = edgesMapping.get(edgeId)
         if (edge) edgesMapping.set(edgeId, { ...edge, ...updates } as GraphEdge)
         const selectedNodesWithEdgesAsList = computeSelectedNodesWithEdgesAsList(
@@ -329,7 +352,7 @@ export const useGraphStore = create<GraphState>()(
           return edge
         })
         const filteredNodes = computeFilteredNodes(updatedNodes, filters)
-        const filteredEdges = computeFilteredEdges(updatedEdges, filteredNodes)
+        const filteredEdges = computeFilteredEdges(updatedEdges, filteredNodes, filters)
         // Update nodesMapping
         nodesMapping.delete(oldId)
         const newNode = updatedNodes.find((n) => n.id === newId)
@@ -501,7 +524,7 @@ export const useGraphStore = create<GraphState>()(
       setFilters: (filters) => {
         const { nodes, edges } = get()
         const filteredNodes = computeFilteredNodes(nodes, filters)
-        const filteredEdges = computeFilteredEdges(edges, filteredNodes)
+        const filteredEdges = computeFilteredEdges(edges, filteredNodes, filters)
         set({ filters, filteredNodes, filteredEdges })
       },
 
@@ -517,7 +540,7 @@ export const useGraphStore = create<GraphState>()(
         })
         const newFilters = { ...filters, types: newTypes }
         const filteredNodes = computeFilteredNodes(nodes, newFilters)
-        const filteredEdges = computeFilteredEdges(edges, filteredNodes)
+        const filteredEdges = computeFilteredEdges(edges, filteredNodes, newFilters)
         set({ filters: newFilters, filteredNodes, filteredEdges })
       },
 
