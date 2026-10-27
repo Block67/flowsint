@@ -17,6 +17,7 @@ from app.api.routes import (
     keys,
     scan,
     sketches,
+    transaction_analytics,
     types,
 )
 
@@ -48,6 +49,11 @@ async def health():
 
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 app.include_router(sketches.router, prefix="/api/sketches", tags=["sketches"])
+app.include_router(
+    transaction_analytics.router,
+    prefix="/api/sketches",
+    tags=["transaction-analytics"],
+)
 app.include_router(
     investigations.router, prefix="/api/investigations", tags=["investigations"]
 )

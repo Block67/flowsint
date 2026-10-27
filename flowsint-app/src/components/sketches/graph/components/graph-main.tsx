@@ -12,6 +12,7 @@ import NodeContextMenu from '../context-menu/node-context-menu'
 import BackgroundContextMenu from '../context-menu/background-context-menu'
 import EdgeContextMenu from '../context-menu/edge-context-menu'
 import { PathPanel } from '../actions/path-finder'
+import { TransactionAnalysisPanel } from '../actions/transaction-analysis'
 import { useParams } from '@tanstack/react-router'
 import { type GraphNode, GraphEdge, type GraphViewerRef } from '@/types'
 import { useLinkCreation } from '../hooks/use-link-creation'
@@ -326,6 +327,7 @@ const GraphMain = () => {
         onCancel={closeQuickAdd}
       />
       <PathPanel />
+      <TransactionAnalysisPanel />
       {nodeMenu && selectedNodes.length === 0 && (
         <NodeContextMenu {...nodeMenu} onRequestParams={setPendingLaunch} />
       )}
