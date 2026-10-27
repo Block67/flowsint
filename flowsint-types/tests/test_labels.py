@@ -84,7 +84,8 @@ def test_credential_label_without_service():
 
 def test_crypto_wallet_label():
     wallet = CryptoWallet(address="0x742d35Cc6634C0532925a3b844Bc454e4438f44e")
-    assert wallet.nodeLabel == "0x742d35Cc6634C0532925a3b844Bc454e4438f44e"
+    # EVM addresses are normalized to lowercase (graph merge key)
+    assert wallet.nodeLabel == "0x742d35cc6634c0532925a3b844bc454e4438f44e"
 
 
 def test_crypto_nft_label_with_name():

@@ -1,12 +1,18 @@
 import os
 from typing import Any, Dict, List, Optional
 
-import requests
-import requests.exceptions
 from dotenv import load_dotenv
 
 from flowsint_core.core.enricher_base import Enricher
 from flowsint_core.core.logger import Logger
+from flowsint_enrichers.crypto._common import (
+    ETHERSCAN_V2_URL,
+    EVM_CHAIN_PARAM,
+    EVM_CHAINS,
+    etherscan_get,
+    to_units,
+    write_transactions,
+)
 from flowsint_enrichers.registry import flowsint_enricher
 from flowsint_types.transaction import Transaction
 from flowsint_types.wallet import CryptoWallet
@@ -15,12 +21,12 @@ load_dotenv()
 
 
 def wei_to_eth(wei_str):
-    return int(wei_str) / 10**18
+    return to_units(wei_str, 18)
 
 
 @flowsint_enricher
 class CryptoWalletAddressToTransactions(Enricher):
-    """[ETHERSCAN] Resolve transactions for a wallet address (ETH)."""
+    """[ETHERSCAN] Resolve native-coin transactions for an EVM wallet (ETH, BSC, Polygon...)."""
 
     # Define types as class attributes - base class handles schema generation automatically
     InputType = CryptoWallet
@@ -59,12 +65,20 @@ class CryptoWalletAddressToTransactions(Enricher):
                 "description": "The Etherscan API key to use for the transaction lookup.",
                 "required": True,
             },
+            EVM_CHAIN_PARAM,
+            {
+                "name": "MAX_TRANSACTIONS",
+                "type": "number",
+                "description": "Most recent transactions to fetch per wallet (max 10000).",
+                "required": False,
+                "default": "100",
+            },
             {
                 "name": "ETHERSCAN_API_URL",
                 "type": "url",
                 "description": "The Etherscan API URL to use for the transaction lookup.",
                 "required": False,
-                "default": "https://api.etherscan.io/v2/api",
+                "default": ETHERSCAN_V2_URL,
             },
         ]
 
@@ -82,14 +96,22 @@ class CryptoWalletAddressToTransactions(Enricher):
 
     async def scan(self, data: List[InputType]) -> List[OutputType]:
         results: List[OutputType] = []
+        params = self.get_params()
         api_key = self.get_secret("ETHERSCAN_API_KEY", os.getenv("ETHERSCAN_API_KEY"))
-        api_url = self.get_params().get(
-            "ETHERSCAN_API_URL", "https://api.etherscan.io/v2/api"
-        )
+        api_url = params.get("ETHERSCAN_API_URL") or ETHERSCAN_V2_URL
+        chain_id = str(params.get("CHAIN_ID") or "1")
+        limit = min(int(params.get("MAX_TRANSACTIONS") or 100), 10000)
         for d in data:
+            if d.chain in ("bitcoin", "tron"):
+                Logger.warn(
+                    self.sketch_id,
+                    {"message": f"Skipping {d.address}: not an EVM address."},
+                )
+                continue
             try:
-                transactions = await self._get_transactions(d.address, api_key, api_url)
-                results.extend(transactions)
+                results.extend(
+                    self._get_transactions(d.address, api_key, api_url, chain_id, limit)
+                )
             except Exception as e:
                 Logger.error(
                     self.sketch_id,
@@ -97,67 +119,41 @@ class CryptoWalletAddressToTransactions(Enricher):
                 )
         return results
 
-    async def _get_transactions(
-        self, address: str, api_key: str, api_url: str
+    def _get_transactions(
+        self, address: str, api_key: str, api_url: str, chain_id: str, limit: int
     ) -> List[Transaction]:
+        chain, currency = EVM_CHAINS.get(chain_id, (f"evm-{chain_id}", None))
+        rows = etherscan_get(
+            api_url,
+            {
+                "chainid": chain_id,
+                "module": "account",
+                "action": "txlist",
+                "address": address,
+                "startblock": 0,
+                "endblock": 99999999,
+                "page": 1,
+                "offset": limit,
+                "sort": "desc",
+                "apikey": api_key,
+            },
+        )
         transactions = []
-        """Get transactions for a wallet address."""
-        params = {
-            "module": "account",
-            "action": "txlist",
-            "address": address,
-            "startblock": 0,
-            "endblock": 99999999,
-            "page": 1,
-            "offset": 100,
-            "sort": "asc",
-            "apikey": api_key,
-        }
-        try:
-            response = requests.get(api_url, params=params)
-
-            # Raise an exception for HTTP errors (4xx or 5xx status codes)
-            response.raise_for_status()
-
-        except requests.exceptions.ConnectionError as e:
-            raise ValueError(
-                f"An error occurred connecting to {api_url}: Connection failed - {str(e)}"
-            )
-        except requests.exceptions.Timeout as e:
-            raise ValueError(
-                f"An error occurred fetching {api_url}: Request timeout - {str(e)}"
-            )
-        except requests.exceptions.RequestException as e:
-            raise ValueError(f"An error occurred fetching {api_url}: {str(e)}")
-
-        try:
-            data = response.json()
-        except requests.exceptions.JSONDecodeError as e:
-            raise ValueError(
-                f"An error occurred fetching {api_url}: Invalid JSON response - {str(e)}"
-            )
-
-        # Check if the API returned an error
-        if data.get("status") != "1":
-            error_message = data.get("message", "Unknown API error")
-            raise ValueError(f"An error occurred fetching {api_url}: {error_message}")
-
-        results = data.get("result", [])
-        for tx in results:
+        for tx in rows:
             # Contract creation transactions have no "to"
             target_address = tx["to"] or tx["contractAddress"] or address
             transactions.append(
                 Transaction(
                     transaction_id=tx["hash"],
-                    source=CryptoWallet(address=tx["from"]),
-                    target=CryptoWallet(address=target_address),
+                    source=CryptoWallet(address=tx["from"], chain=chain),
+                    target=CryptoWallet(address=target_address, chain=chain),
                     amount=wei_to_eth(tx["value"]),
-                    currency="ETH",
+                    currency=currency,
                     timestamp=int(tx["timeStamp"]),
                     channel="crypto",
                     status="failed" if tx.get("isError") == "1" else "success",
                     fees=wei_to_eth(int(tx["gasUsed"]) * int(tx["gasPrice"])),
-                    chain="ethereum",
+                    chain=chain,
                     block_number=int(tx["blockNumber"]),
                     contract_address=tx["contractAddress"] or None,
                     function_name=tx.get("functionName") or None,
@@ -168,28 +164,8 @@ class CryptoWalletAddressToTransactions(Enricher):
     def postprocess(
         self, results: List[OutputType], original_input: List[InputType]
     ) -> List[OutputType]:
-        if not self._graph_service:
-            return results
-
-        for tx in results:
-            self.create_node(tx.source)
-            self.create_node(tx.target)
-            self.create_relationship(
-                tx.source,
-                tx.target,
-                "TRANSACTION",
-                properties=tx.edge_properties(),
-                edge_key=tx.transaction_id,
-            )
-            timestamp_str = (
-                tx.timestamp.strftime("%Y-%m-%d %H:%M:%S")
-                if tx.timestamp
-                else "Unknown time"
-            )
-            self.log_graph_message(
-                f"Transaction on {timestamp_str}: {tx.source.address} -> {tx.target.address} ({tx.caption})"
-            )
-
+        if self._graph_service:
+            write_transactions(self, results)
         return results
 
 

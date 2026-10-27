@@ -4,7 +4,9 @@ from flowsint_enrichers import ENRICHER_REGISTRY
 
 
 def test_enricher_registry_enricher_found():
-    enricher = ENRICHER_REGISTRY.get_enricher("cryptowallet_to_transactions", "123", "123")
+    enricher = ENRICHER_REGISTRY.get_enricher(
+        "cryptowallet_to_transactions", "123", "123"
+    )
     assert enricher.name() == "cryptowallet_to_transactions"
 
 

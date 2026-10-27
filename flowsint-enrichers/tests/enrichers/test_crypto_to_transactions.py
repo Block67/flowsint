@@ -41,14 +41,16 @@ def mock_response(results):
     return response
 
 
-@pytest.mark.asyncio
-async def test_get_transactions_maps_etherscan_fields(enricher):
+def test_get_transactions_maps_etherscan_fields(enricher):
     results = [
         etherscan_tx(),
         etherscan_tx(hash="0xhash2", to=None, contractAddress=CONTRACT, isError="1"),
     ]
-    with patch("requests.get", return_value=mock_response(results)):
-        txs = await enricher._get_transactions(WALLET, "key", "https://api")
+    with patch("requests.get", return_value=mock_response(results)) as get:
+        txs = enricher._get_transactions(WALLET, "key", "https://api", "1", 100)
+
+    # Etherscan v2 rejects requests without a chain id
+    assert get.call_args.kwargs["params"]["chainid"] == "1"
 
     assert [tx.transaction_id for tx in txs] == ["0xhash1", "0xhash2"]
     first = txs[0]
@@ -87,3 +89,44 @@ def test_postprocess_creates_one_edge_per_transaction(enricher):
     assert [c.kwargs["edge_key"] for c in rel_calls] == ["0xhash1", "0xhash2"]
     assert all(c.kwargs["rel_label"] == "TRANSACTION" for c in rel_calls)
     assert rel_calls[0].kwargs["properties"]["caption"] == "1 ETH"
+
+
+def test_other_evm_chain_sets_currency_and_chain(enricher):
+    with patch("requests.get", return_value=mock_response([etherscan_tx()])):
+        (tx,) = enricher._get_transactions(WALLET, "key", "https://api", "56", 100)
+
+    assert tx.currency == "BNB"
+    assert tx.source.chain == "bsc"
+
+
+def test_no_transactions_is_not_an_error(enricher):
+    response = MagicMock()
+    response.json.return_value = {
+        "status": "0",
+        "message": "No transactions found",
+        "result": [],
+    }
+    with patch("requests.get", return_value=response):
+        assert enricher._get_transactions(WALLET, "key", "https://api", "1", 100) == []
+
+
+def test_api_error_is_raised(enricher):
+    response = MagicMock()
+    response.json.return_value = {
+        "status": "0",
+        "message": "NOTOK",
+        "result": "Missing chainid parameter",
+    }
+    with patch("requests.get", return_value=response):
+        with pytest.raises(ValueError, match="Missing chainid"):
+            enricher._get_transactions(WALLET, "key", "https://api", "1", 100)
+
+
+@pytest.mark.asyncio
+async def test_scan_skips_non_evm_wallets(enricher):
+    with patch("requests.get") as get:
+        out = await enricher.scan(
+            [CryptoWallet(address="TWd4WrZ9wn84f5x1hZhL4DHvk738ns5jwb")]
+        )
+    assert out == []
+    get.assert_not_called()

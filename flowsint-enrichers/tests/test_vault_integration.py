@@ -85,7 +85,9 @@ class TestVaultSecretWithUserProvidedID:
             sketch_id=sketch_id,
             scan_id="scan_123",
             vault=mock_vault,
-            params={"ETHERSCAN_API_KEY": vault_id},  # User selected a specific vault entry
+            params={
+                "ETHERSCAN_API_KEY": vault_id
+            },  # User selected a specific vault entry
         )
 
         await enricher.async_init()

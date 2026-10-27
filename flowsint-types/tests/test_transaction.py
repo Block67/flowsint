@@ -113,3 +113,36 @@ class TestTransaction:
 
     def test_weight_prefers_usd(self):
         assert make_tx(amount_usd=2.5).edge_properties()["weight"] == 2.5
+
+
+class TestCryptoWalletChain:
+    def test_bitcoin_and_tron_inferred(self):
+        assert (
+            CryptoWallet(address="bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq").chain
+            == "bitcoin"
+        )
+        assert (
+            CryptoWallet(address="1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa").chain
+            == "bitcoin"
+        )
+        assert (
+            CryptoWallet(address="TWd4WrZ9wn84f5x1hZhL4DHvk738ns5jwb").chain == "tron"
+        )
+
+    def test_evm_chain_left_to_caller(self):
+        assert CryptoWallet(address="0x" + "a" * 40).chain is None
+        assert CryptoWallet(address="0x" + "a" * 40, chain="bsc").chain == "bsc"
+
+    def test_inferred_chain_not_marked_unset(self):
+        # Inferred chain must be written to the graph like an explicit one
+        wallet = CryptoWallet(address="TWd4WrZ9wn84f5x1hZhL4DHvk738ns5jwb")
+        assert wallet.model_dump(exclude_unset=True)["chain"] == "tron"
+
+    def test_evm_address_lowercased(self):
+        checksummed = CryptoWallet(address="0xde0B295669a9FD93d5F28D9Ec85E40f4cb697BAe")
+        lower = CryptoWallet(address="0xde0b295669a9fd93d5f28d9ec85e40f4cb697bae")
+        assert checksummed.nodeLabel == lower.nodeLabel
+
+    def test_tron_detected_on_import(self):
+        assert CryptoWallet.detect("TWd4WrZ9wn84f5x1hZhL4DHvk738ns5jwb")
+        assert not CryptoWallet.detect("not an address at all, just text")

@@ -1,11 +1,17 @@
 import os
 from typing import Any, Dict, List, Optional
 
-import requests
 from dotenv import load_dotenv
 
 from flowsint_core.core.enricher_base import Enricher
+from flowsint_core.core.logger import Logger
 from flowsint_core.core.vault import VaultProtocol
+from flowsint_enrichers.crypto._common import (
+    ETHERSCAN_V2_URL,
+    EVM_CHAIN_PARAM,
+    EVM_CHAINS,
+    etherscan_get,
+)
 from flowsint_enrichers.registry import flowsint_enricher
 from flowsint_types.wallet import CryptoNFT, CryptoWallet
 
@@ -14,7 +20,7 @@ load_dotenv()
 
 @flowsint_enricher
 class CryptoWalletAddressToNFTs(Enricher):
-    """[ETHERSCAN] Resolve NFTs for a wallet address (ETH)."""
+    """[ETHERSCAN] Resolve NFTs received by an EVM wallet (ETH, BSC, Polygon...)."""
 
     # Define types as class attributes - base class handles schema generation automatically
     InputType = CryptoWallet
@@ -53,6 +59,7 @@ class CryptoWalletAddressToNFTs(Enricher):
                 "description": "The Etherscan API key to use for the NFT lookup.",
                 "required": True,
             },
+            EVM_CHAIN_PARAM,
             {
                 "name": "ETHERSCAN_API_URL",
                 "type": "url",
@@ -76,45 +83,52 @@ class CryptoWalletAddressToNFTs(Enricher):
 
     async def scan(self, data: List[InputType]) -> List[OutputType]:
         results: List[OutputType] = []
+        params = self.get_params()
         api_key = self.get_secret("ETHERSCAN_API_KEY", os.getenv("ETHERSCAN_API_KEY"))
-        api_url = self.get_params().get(
-            "ETHERSCAN_API_URL", "https://api.etherscan.io/v2/api"
-        )
+        api_url = params.get("ETHERSCAN_API_URL") or ETHERSCAN_V2_URL
+        chain_id = str(params.get("CHAIN_ID") or "1")
         for d in data:
             try:
-                nfts = self._get_nfts(d.address, api_key, api_url)
+                nfts = self._get_nfts(d.address, api_key, api_url, chain_id)
                 results.append(nfts)
             except Exception as e:
-                print(f"Error resolving nfts for {d.address}: {e}")
+                Logger.error(
+                    self.sketch_id,
+                    {"message": f"Error resolving NFTs for {d.address}: {e}"},
+                )
         return results
 
-    def _get_nfts(self, address: str, api_key: str, api_url: str) -> List[CryptoNFT]:
+    def _get_nfts(
+        self, address: str, api_key: str, api_url: str, chain_id: str
+    ) -> List[CryptoNFT]:
+        """NFTs received by the wallet (tokennfttx lists transfers both ways)."""
+        rows = etherscan_get(
+            api_url,
+            {
+                "chainid": chain_id,
+                "module": "account",
+                "action": "tokennfttx",
+                "address": address,
+                "startblock": 0,
+                "endblock": 99999999,
+                "page": 1,
+                "offset": 10000,
+                "sort": "asc",
+                "apikey": api_key,
+            },
+        )
+        chain = EVM_CHAINS.get(chain_id, (None,))[0]
         nfts = []
-        """Get nfts for a wallet address."""
-        params: Dict[str, Any] = {
-            "module": "account",
-            "action": "tokennfttx",
-            "address": address,
-            "startblock": 0,
-            "endblock": 99999999,
-            "page": 1,
-            "offset": 10000,
-            "sort": "asc",
-            "apikey": api_key,
-        }
-        response = requests.get(api_url, params=params)
-        data = response.json()
-        results = data["result"]
-        for tx in results:
+        for tx in rows:
+            if (tx.get("to") or "").lower() != address.lower():
+                continue
             nfts.append(
                 CryptoNFT(
-                    wallet=CryptoWallet(address=address),
+                    wallet=CryptoWallet(address=address, chain=chain),
                     contract_address=tx["contractAddress"],
                     token_id=tx["tokenID"],
-                    collection_name=tx["collectionName"],
-                    metadata_url=tx["metadataURL"],
-                    image_url=tx["imageURL"],
-                    name=tx["name"],
+                    collection_name=tx.get("tokenName") or None,
+                    name=tx.get("tokenSymbol") or None,
                 )
             )
         return nfts

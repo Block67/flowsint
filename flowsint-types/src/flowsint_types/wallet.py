@@ -1,10 +1,23 @@
 import re
-from typing import Optional, Self
+from typing import Any, Optional, Self
 
 from pydantic import Field, HttpUrl, field_validator, model_validator
 
 from .flowsint_base import FlowsintType
 from .registry import flowsint_type
+
+BITCOIN_PATTERN = re.compile(r"^([13][a-km-zA-HJ-NP-Z1-9]{25,34}|bc1[a-z0-9]{39,59})$")
+TRON_PATTERN = re.compile(r"^T[1-9A-HJ-NP-Za-km-z]{33}$")
+EVM_PATTERN = re.compile(r"^0x[a-fA-F0-9]{40}$")
+
+
+def chain_from_address(address: str) -> Optional[str]:
+    address = address.strip()
+    if BITCOIN_PATTERN.match(address):
+        return "bitcoin"
+    if TRON_PATTERN.match(address):
+        return "tron"
+    return None
 
 
 @flowsint_type
@@ -20,6 +33,22 @@ class CryptoWallet(FlowsintType):
     node_id: Optional[str] = Field(
         None, description="Wallet Explorer node ID", title="Node ID"
     )
+    chain: Optional[str] = Field(
+        None,
+        description="Blockchain (bitcoin, tron, ethereum, bsc, polygon...)",
+        title="Chain",
+    )
+
+    @model_validator(mode="before")
+    @classmethod
+    def infer_chain(cls, data: Any) -> Any:
+        """Fill `chain` when the address format is unambiguous. 0x addresses are
+        valid on every EVM chain, so they are left to the caller."""
+        if isinstance(data, dict) and not data.get("chain"):
+            chain = chain_from_address(str(data.get("address") or ""))
+            if chain:
+                data = {**data, "chain": chain}
+        return data
 
     @field_validator("address")
     @classmethod
@@ -30,6 +59,11 @@ class CryptoWallet(FlowsintType):
 
         # Strip whitespace
         v = v.strip()
+
+        # EVM addresses are case-insensitive (mixed case is only a checksum) and
+        # explorers return them lowercase: normalize so the same wallet is one node.
+        if EVM_PATTERN.match(v):
+            v = v.lower()
 
         # Basic validation: check if it looks like a valid crypto address
         # Ethereum addresses start with 0x and are 42 characters (0x + 40 hex chars)
@@ -71,17 +105,8 @@ class CryptoWallet(FlowsintType):
         if re.match(ethereum_pattern, line):
             return True
 
-        # Bitcoin legacy pattern: starts with 1 or 3, 26-35 characters
-        bitcoin_legacy_pattern = r"^[13][a-km-zA-HJ-NP-Z1-9]{25,34}$"
-        if re.match(bitcoin_legacy_pattern, line):
-            return True
-
-        # Bitcoin SegWit pattern: starts with bc1, 39-59 characters
-        bitcoin_segwit_pattern = r"^bc1[a-z0-9]{39,59}$"
-        if re.match(bitcoin_segwit_pattern, line):
-            return True
-
-        return False
+        # Bitcoin (legacy / segwit) and TRON
+        return chain_from_address(line) is not None
 
 
 @flowsint_type
