@@ -7,7 +7,11 @@ import type {
   PreviewEdge,
   ImportAnalysisResult,
   ImportExecutionResult,
-  RelationshipType
+  RelationshipType,
+  TransactionMapping,
+  TransactionTableAnalysis,
+  TransactionPreview,
+  TransactionImportResult
 } from '@/types'
 import type { GraphNode } from '@/types/graph'
 import type { ActionItem } from '@/lib/action-items'
@@ -134,6 +138,43 @@ export const sketchService = {
     formData.append('entity_mappings_json', JSON.stringify({ nodes: entityMappings, edges: edges }))
 
     return fetchWithAuth(`/api/sketches/${sketchId}/import/execute`, {
+      method: 'POST',
+      body: formData
+    })
+  },
+  analyzeTransactionFile: async (
+    sketchId: string,
+    file: File
+  ): Promise<TransactionTableAnalysis> => {
+    const formData = new FormData()
+    formData.append('file', file)
+    return fetchWithAuth(`/api/sketches/${sketchId}/import/transactions/analyze`, {
+      method: 'POST',
+      body: formData
+    })
+  },
+  previewTransactionImport: async (
+    sketchId: string,
+    file: File,
+    mapping: TransactionMapping
+  ): Promise<TransactionPreview> => {
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('mapping_json', JSON.stringify(mapping))
+    return fetchWithAuth(`/api/sketches/${sketchId}/import/transactions/preview`, {
+      method: 'POST',
+      body: formData
+    })
+  },
+  executeTransactionImport: async (
+    sketchId: string,
+    file: File,
+    mapping: TransactionMapping
+  ): Promise<TransactionImportResult> => {
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('mapping_json', JSON.stringify(mapping))
+    return fetchWithAuth(`/api/sketches/${sketchId}/import/transactions/execute`, {
       method: 'POST',
       body: formData
     })

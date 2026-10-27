@@ -12,6 +12,7 @@ from fastapi import (
     status,
 )
 from pydantic import BaseModel, Field
+from pydantic import ValidationError as PydanticValidationError
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user
@@ -34,6 +35,14 @@ from flowsint_core.imports import (
     EntityMapping,
     FileParseResult,
     create_import_service,
+)
+from flowsint_core.imports.transactions import (
+    ALLOWED_TABLE_EXTENSIONS,
+    TableAnalysis,
+    TransactionImportResult,
+    TransactionImportService,
+    TransactionMapping,
+    TransactionPreview,
 )
 
 router = APIRouter()
@@ -474,7 +483,7 @@ async def execute_import(
 
     service = create_sketch_service(db)
     try:
-        service.get_by_id(UUID(sketch_id), current_user.id)
+        service.get_for_update(UUID(sketch_id), current_user.id)
     except NotFoundError:
         raise HTTPException(status_code=404, detail="Sketch not found")
     except PermissionDeniedError:
@@ -525,6 +534,110 @@ async def execute_import(
         nodes_skipped=result.nodes_skipped,
         errors=result.errors,
     )
+
+
+def _check_sketch_access(
+    db: Session, sketch_id: str, user_id: UUID, for_update: bool = False
+) -> None:
+    service = create_sketch_service(db)
+    try:
+        if for_update:
+            service.get_for_update(UUID(sketch_id), user_id)
+        else:
+            service.get_by_id(UUID(sketch_id), user_id)
+    except (NotFoundError, ValueError):
+        raise HTTPException(status_code=404, detail="Sketch not found")
+    except PermissionDeniedError:
+        raise HTTPException(status_code=403, detail="Forbidden")
+
+
+async def _read_table_upload(file: UploadFile) -> bytes:
+    if not file.filename or not file.filename.lower().endswith(
+        tuple(ALLOWED_TABLE_EXTENSIONS)
+    ):
+        raise HTTPException(
+            status_code=400,
+            detail=f"Only {', '.join(ALLOWED_TABLE_EXTENSIONS)} files are supported.",
+        )
+    try:
+        return await file.read()
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Failed to read file: {str(e)}")
+
+
+def _parse_transaction_mapping(mapping_json: str) -> TransactionMapping:
+    try:
+        return TransactionMapping.model_validate_json(mapping_json)
+    except PydanticValidationError as e:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid mapping: "
+            + "; ".join(err["msg"] for err in e.errors(include_url=False)),
+        )
+
+
+@router.post("/{sketch_id}/import/transactions/analyze", response_model=TableAnalysis)
+async def analyze_transaction_file(
+    sketch_id: str,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: Profile = Depends(get_current_user),
+):
+    """Read a CSV/XLSX statement: headers, sample rows and suggested columns."""
+    _check_sketch_access(db, sketch_id, current_user.id)
+    content = await _read_table_upload(file)
+    try:
+        return TransactionImportService().analyze(content, file.filename)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post(
+    "/{sketch_id}/import/transactions/preview", response_model=TransactionPreview
+)
+async def preview_transaction_import(
+    sketch_id: str,
+    file: UploadFile = File(...),
+    mapping_json: str = Form(...),
+    db: Session = Depends(get_db),
+    current_user: Profile = Depends(get_current_user),
+):
+    """Parse a statement with a column mapping without writing to the graph."""
+    _check_sketch_access(db, sketch_id, current_user.id)
+    content = await _read_table_upload(file)
+    mapping = _parse_transaction_mapping(mapping_json)
+    try:
+        return TransactionImportService().preview(content, file.filename, mapping)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post(
+    "/{sketch_id}/import/transactions/execute",
+    response_model=TransactionImportResult,
+)
+@update_sketch_timestamp
+async def execute_transaction_import(
+    sketch_id: str,
+    file: UploadFile = File(...),
+    mapping_json: str = Form(...),
+    background_tasks: BackgroundTasks = BackgroundTasks(),
+    db: Session = Depends(get_db),
+    current_user: Profile = Depends(get_current_user),
+):
+    """Import a statement's transactions as TRANSACTION edges between accounts."""
+    _check_sketch_access(db, sketch_id, current_user.id, for_update=True)
+    content = await _read_table_upload(file)
+    mapping = _parse_transaction_mapping(mapping_json)
+    graph_service = create_graph_service(sketch_id=sketch_id, enable_batching=True)
+    try:
+        return TransactionImportService(graph_service).execute(
+            content, file.filename, mapping
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Import failed: {str(e)}")
 
 
 @router.get("/{id}/export")

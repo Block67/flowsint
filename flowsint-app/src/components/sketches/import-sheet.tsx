@@ -10,16 +10,21 @@ import { Button } from '@/components/ui/button'
 import { Upload, FileText } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { ImportPreview } from './import-preview'
+import { TransactionImport } from './transaction-import'
 import { sketchService } from '@/api/sketch-service'
 import { toast } from 'sonner'
 import { useGraphSettingsStore } from '@/stores/graph-settings-store'
 import Loader from '../loader'
+import type { TransactionTableAnalysis } from '@/types'
 
 interface ImportSheetProps {
   sketchId: string
 }
 
-const ALLOWED_EXTENSIONS = ['.txt', '.json']
+const ENTITY_EXTENSIONS = ['.txt', '.json']
+// Statements (one transaction per row) go through the column mapping flow
+const TRANSACTION_EXTENSIONS = ['.csv', '.xlsx']
+const ALLOWED_EXTENSIONS = [...ENTITY_EXTENSIONS, ...TRANSACTION_EXTENSIONS]
 
 export function ImportSheet({ sketchId }: ImportSheetProps) {
   const onOpenChange = useGraphSettingsStore((s) => s.setImportModalOpen)
@@ -28,6 +33,7 @@ export function ImportSheet({ sketchId }: ImportSheetProps) {
   const [isDragging, setIsDragging] = useState(false)
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [analysisResult, setAnalysisResult] = useState<any>(null)
+  const [tableAnalysis, setTableAnalysis] = useState<TransactionTableAnalysis | null>(null)
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault()
@@ -43,7 +49,6 @@ export function ImportSheet({ sketchId }: ImportSheetProps) {
 
   const handleFileSelect = useCallback(
     async (selectedFile: File) => {
-      // Validate file type - only TXT files are supported
       const fileExtension = selectedFile.name
         .toLowerCase()
         .substring(selectedFile.name.lastIndexOf('.'))
@@ -56,8 +61,11 @@ export function ImportSheet({ sketchId }: ImportSheetProps) {
       setFile(selectedFile)
       setIsAnalyzing(true)
       try {
-        const result = await sketchService.analyzeImportFile(sketchId, selectedFile)
-        setAnalysisResult(result)
+        if (TRANSACTION_EXTENSIONS.includes(fileExtension)) {
+          setTableAnalysis(await sketchService.analyzeTransactionFile(sketchId, selectedFile))
+        } else {
+          setAnalysisResult(await sketchService.analyzeImportFile(sketchId, selectedFile))
+        }
       } catch (error) {
         toast.error(error?.message)
         setFile(null)
@@ -95,6 +103,7 @@ export function ImportSheet({ sketchId }: ImportSheetProps) {
   const handleReset = useCallback(() => {
     setFile(null)
     setAnalysisResult(null)
+    setTableAnalysis(null)
     setIsAnalyzing(false)
   }, [])
 
@@ -113,18 +122,19 @@ export function ImportSheet({ sketchId }: ImportSheetProps) {
         side="right"
         className={cn(
           'flex flex-col h-full overflow-hidden py-2', // full height, vertical layout
-          analysisResult ? 'sm:max-w-[85vw]' : 'sm:max-w-2xl'
+          analysisResult || tableAnalysis ? 'sm:max-w-[85vw]' : 'sm:max-w-2xl'
         )}
       >
         {/* Header stays fixed */}
         <SheetHeader className="shrink-0 border-b bg-background p-0 h-19 px-6 justify-center flex-col flex items-start">
-          <SheetTitle>Import entities</SheetTitle>
+          <SheetTitle>Import</SheetTitle>
           <SheetDescription>
-            Upload a TXT file with one value per line to import entities into your sketch
+            Upload a CSV/Excel statement to import transactions, or a TXT/JSON file to import
+            entities
           </SheetDescription>
         </SheetHeader>
         <div className="flex flex-col grow overflow-hidden p-6">
-          {!file && !analysisResult && (
+          {!file && !analysisResult && !tableAnalysis && (
             <div
               className={cn(
                 'border-2 border-dashed rounded-lg p-12 text-center flex items-center justify-center transition-colors grow overflow-auto',
@@ -156,8 +166,9 @@ export function ImportSheet({ sketchId }: ImportSheetProps) {
                 </Button>
                 <p className="text-xs text-muted-foreground">
                   Supported format:{' '}
-                  <span className="font-bold">{ALLOWED_EXTENSIONS.join(', ')}</span> (one value per
-                  line)
+                  <span className="font-bold">{TRANSACTION_EXTENSIONS.join(', ')}</span> (one
+                  transaction per row) or{' '}
+                  <span className="font-bold">{ENTITY_EXTENSIONS.join(', ')}</span> (entities)
                 </p>
               </div>
             </div>
@@ -170,7 +181,7 @@ export function ImportSheet({ sketchId }: ImportSheetProps) {
             </div>
           )}
 
-          {file && !isAnalyzing && !analysisResult && (
+          {file && !isAnalyzing && !analysisResult && !tableAnalysis && (
             <div className="flex items-center gap-4 p-4 border rounded-lg">
               {getFileIcon()}
               <div className="flex-1">
@@ -181,6 +192,16 @@ export function ImportSheet({ sketchId }: ImportSheetProps) {
                 Remove
               </Button>
             </div>
+          )}
+
+          {tableAnalysis && file && (
+            <TransactionImport
+              sketchId={sketchId}
+              file={file}
+              analysis={tableAnalysis}
+              onSuccess={handleClose}
+              onCancel={handleReset}
+            />
           )}
 
           {/* Scrollable Import Preview */}

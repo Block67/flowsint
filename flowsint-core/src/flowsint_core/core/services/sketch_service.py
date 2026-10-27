@@ -59,6 +59,10 @@ class SketchService(BaseService):
         """Get a sketch by ID with permission check."""
         return self._get_sketch_with_permission(sketch_id, user_id, ["read"])
 
+    def get_for_update(self, sketch_id: UUID, user_id: UUID) -> Sketch:
+        """Get a sketch the user is allowed to modify (e.g. import into)."""
+        return self._get_sketch_with_permission(sketch_id, user_id, ["update"])
+
     def create(
         self,
         title: str,
