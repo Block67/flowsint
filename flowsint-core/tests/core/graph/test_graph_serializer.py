@@ -249,6 +249,25 @@ class TestGraphDictToGraphEdge:
         assert result.source == "1"
         assert result.target == "2"
 
+    def test_maps_edge_data_to_display_fields(self):
+        edge_dict = {
+            "id": "e",
+            "source": "a",
+            "target": "b",
+            "type": "TRANSACTION",
+            "data": {
+                "caption": "1.5 ETH",
+                "date": "2024-01-01T00:00:00+00:00",
+                "weight": 1.5,
+                "type": "transaction",
+            },
+        }
+        result = GraphSerializer.neo4j_dict_to_graph_edge(edge_dict)
+        assert result.caption == "1.5 ETH"
+        assert result.date == "2024-01-01T00:00:00+00:00"
+        assert result.weight == 1.5
+        assert result.type == "transaction"
+
 
 class TestGraphEdgeToGraphDict:
     def test_with_flowsint_types(self):
@@ -262,6 +281,27 @@ class TestGraphEdgeToGraphDict:
             "to_label": "target.com",
             "rel_label": "LINKS_TO",
         }
+
+    def test_with_properties_and_edge_key(self):
+        result = GraphSerializer.graph_edge_to_neo4j_dict(
+            Domain(domain="source.com"),
+            Domain(domain="target.com"),
+            "TRANSACTION",
+            properties={"amount": 2.0},
+            edge_key="tx-1",
+        )
+        assert result["amount"] == 2.0
+        assert result["edge_key"] == "tx-1"
+        assert result["rel_label"] == "TRANSACTION"
+
+    def test_properties_cannot_override_endpoints(self):
+        result = GraphSerializer.graph_edge_to_neo4j_dict(
+            Domain(domain="source.com"),
+            Domain(domain="target.com"),
+            "LINKS_TO",
+            properties={"from_label": "evil.com"},
+        )
+        assert result["from_label"] == "source.com"
 
     def test_with_graph_nodes(self):
         from_obj = GraphNode(

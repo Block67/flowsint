@@ -1,5 +1,4 @@
 import os
-from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 import requests
@@ -9,7 +8,8 @@ from dotenv import load_dotenv
 from flowsint_core.core.enricher_base import Enricher
 from flowsint_core.core.logger import Logger
 from flowsint_enrichers.registry import flowsint_enricher
-from flowsint_types.wallet import CryptoWallet, CryptoWalletTransaction
+from flowsint_types.transaction import Transaction
+from flowsint_types.wallet import CryptoWallet
 
 load_dotenv()
 
@@ -24,7 +24,7 @@ class CryptoWalletAddressToTransactions(Enricher):
 
     # Define types as class attributes - base class handles schema generation automatically
     InputType = CryptoWallet
-    OutputType = CryptoWalletTransaction
+    OutputType = Transaction
 
     def __init__(
         self,
@@ -89,7 +89,7 @@ class CryptoWalletAddressToTransactions(Enricher):
         for d in data:
             try:
                 transactions = await self._get_transactions(d.address, api_key, api_url)
-                results.append(transactions)
+                results.extend(transactions)
             except Exception as e:
                 Logger.error(
                     self.sketch_id,
@@ -99,7 +99,7 @@ class CryptoWalletAddressToTransactions(Enricher):
 
     async def _get_transactions(
         self, address: str, api_key: str, api_url: str
-    ) -> List[CryptoWalletTransaction]:
+    ) -> List[Transaction]:
         transactions = []
         """Get transactions for a wallet address."""
         params = {
@@ -144,34 +144,23 @@ class CryptoWalletAddressToTransactions(Enricher):
 
         results = data.get("result", [])
         for tx in results:
-            # Properly determine source and target based on transaction data
-            source_address = tx["from"]
-
-            if tx["to"] is not None:
-                target_address = tx["to"]
-            else:
-                # Contract creation transaction
-                target_address = (
-                    tx["contractAddress"] if tx["contractAddress"] else address
-                )
-
+            # Contract creation transactions have no "to"
+            target_address = tx["to"] or tx["contractAddress"] or address
             transactions.append(
-                CryptoWalletTransaction(
-                    source=CryptoWallet(address=source_address),
+                Transaction(
+                    transaction_id=tx["hash"],
+                    source=CryptoWallet(address=tx["from"]),
                     target=CryptoWallet(address=target_address),
-                    hash=tx["hash"],
-                    value=wei_to_eth(tx["value"]),
-                    timestamp=tx["timeStamp"],
-                    block_number=tx["blockNumber"],
-                    block_hash=tx["blockHash"],
-                    nonce=tx["nonce"],
-                    transaction_index=tx["transactionIndex"],
-                    gas=tx["gas"],
-                    gas_price=tx["gasPrice"],
-                    gas_used=tx["gasUsed"],
-                    cumulative_gas_used=tx["cumulativeGasUsed"],
-                    input=tx["input"],
-                    contract_address=tx["contractAddress"],
+                    amount=wei_to_eth(tx["value"]),
+                    currency="ETH",
+                    timestamp=int(tx["timeStamp"]),
+                    channel="crypto",
+                    status="failed" if tx.get("isError") == "1" else "success",
+                    fees=wei_to_eth(int(tx["gasUsed"]) * int(tx["gasPrice"])),
+                    chain="ethereum",
+                    block_number=int(tx["blockNumber"]),
+                    contract_address=tx["contractAddress"] or None,
+                    function_name=tx.get("functionName") or None,
                 )
             )
         return transactions
@@ -182,65 +171,24 @@ class CryptoWalletAddressToTransactions(Enricher):
         if not self._graph_service:
             return results
 
-        for transactions in results:
-            for tx in transactions:
-                # Create or update both wallet nodes
-                self.create_node(tx.source)
-                self.create_node(tx.target.address)
-                # Create transaction as an edge between wallets (keeping complex query for transaction properties)
-                tx_query = """
-                MATCH (source:cryptowallet {wallet: $source})
-                MATCH (target:cryptowallet {wallet: $target})
-                MERGE (source)-[tx:TRANSACTION {hash: $hash}]->(target)
-                SET tx.value = $value,
-                    tx.timestamp = $timestamp,
-                    tx.block_number = $block_number,
-                    tx.block_hash = $block_hash,
-                    tx.nonce = $nonce,
-                    tx.transaction_index = $transaction_index,
-                    tx.gas = $gas,
-                    tx.gas_price = $gas_price,
-                    tx.gas_used = $gas_used,
-                    tx.cumulative_gas_used = $cumulative_gas_used,
-                    tx.input = $input,
-                    tx.contract_address = $contract_address,
-                    tx.sketch_id = $sketch_id,
-                    tx.label = $hash,
-                    tx.caption = $hash,
-                    tx.type = "transaction"
-                """
-                self._graph_service.query(
-                    tx_query,
-                    {
-                        "hash": tx.hash,
-                        "source": tx.source.address,
-                        "target": tx.target.address,
-                        "value": tx.value,
-                        "timestamp": tx.timestamp,
-                        "block_number": tx.block_number,
-                        "block_hash": tx.block_hash,
-                        "nonce": tx.nonce,
-                        "transaction_index": tx.transaction_index,
-                        "gas": tx.gas,
-                        "gas_price": tx.gas_price,
-                        "gas_used": tx.gas_used,
-                        "cumulative_gas_used": tx.cumulative_gas_used,
-                        "input": tx.input,
-                        "contract_address": tx.contract_address,
-                        "sketch_id": self.sketch_id,
-                    },
-                )
-
-                timestamp_str = (
-                    datetime.fromtimestamp(int(tx.timestamp)).strftime(
-                        "%Y-%m-%d %H:%M:%S"
-                    )
-                    if tx.timestamp
-                    else "Unknown time"
-                )
-                self.log_graph_message(
-                    f"Transaction on {timestamp_str}: {tx.source.address} -> {tx.target.address}"
-                )
+        for tx in results:
+            self.create_node(tx.source)
+            self.create_node(tx.target)
+            self.create_relationship(
+                tx.source,
+                tx.target,
+                "TRANSACTION",
+                properties=tx.edge_properties(),
+                edge_key=tx.transaction_id,
+            )
+            timestamp_str = (
+                tx.timestamp.strftime("%Y-%m-%d %H:%M:%S")
+                if tx.timestamp
+                else "Unknown time"
+            )
+            self.log_graph_message(
+                f"Transaction on {timestamp_str}: {tx.source.address} -> {tx.target.address} ({tx.caption})"
+            )
 
         return results
 

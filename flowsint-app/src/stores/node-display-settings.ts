@@ -14,6 +14,9 @@ export type ItemType =
   | 'cryptowallet'
   | 'cryptowallettransaction'
   | 'cryptonft'
+  | 'transaction'
+  | 'mobilemoneyaccount'
+  | 'merchant'
   | 'website'
   | 'phrase'
   | 'breach'
@@ -44,6 +47,9 @@ export const ITEM_TYPES: ItemType[] = [
   'cryptowallet',
   'cryptowallettransaction',
   'cryptonft',
+  'transaction',
+  'mobilemoneyaccount',
+  'merchant',
   'website',
   'phrase',
   'breach',
@@ -76,6 +82,9 @@ export const TYPE_TO_ICON: Record<string, keyof typeof LucideIcons> = {
   cryptowallet: 'Wallet',
   cryptowallettransaction: 'ArrowRightLeft',
   cryptonft: 'Image',
+  transaction: 'ArrowRightLeft',
+  mobilemoneyaccount: 'Smartphone',
+  merchant: 'Store',
   website: 'Globe',
   phrase: 'Quote',
   breach: 'ShieldAlert',
@@ -108,6 +117,9 @@ const DEFAULT_COLORS: Record<ItemType, string> = {
   cryptowallet: '#D4B030', // or clair
   cryptowallettransaction: '#BFA750', // or chaud
   cryptonft: '#A5BF50', // vert lime doux
+  transaction: '#BFA750', // or chaud
+  mobilemoneyaccount: '#E3A857', // orange sable
+  merchant: '#BCA18A', // taupe clair
   website: '#D279A6', // rose pastel
   phrase: '#BFA77A', // beige chaud
   breach: '#CC7A7A', // rose chaud

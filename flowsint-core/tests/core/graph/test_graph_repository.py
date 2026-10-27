@@ -150,6 +150,39 @@ class TestBuildRelationshipQuery:
         assert params["to_label"] == "1.1.1.1"
         assert params["sketch_id"] == "sketch-1"
 
+    def test_build_relationship_query_merges_on_edge_key(self):
+        repo = Neo4jGraphRepository(neo4j_connection=MagicMock())
+        rel_obj = {
+            "from_type": "cryptowallet",
+            "from_label": "0xa",
+            "to_type": "cryptowallet",
+            "to_label": "0xb",
+            "rel_label": "TRANSACTION",
+            "edge_key": "0xhash",
+            "amount": 1.5,
+        }
+
+        query, params = repo._build_relationship_query(rel_obj, sketch_id="sketch-1")
+
+        assert "edge_key: $edge_key" in query
+        assert params["edge_key"] == "0xhash"
+        assert params["props"]["amount"] == 1.5
+
+    def test_build_relationship_query_without_edge_key(self):
+        repo = Neo4jGraphRepository(neo4j_connection=MagicMock())
+        rel_obj = {
+            "from_type": "domain",
+            "from_label": "a.com",
+            "to_type": "ip",
+            "to_label": "1.1.1.1",
+            "rel_label": "RESOLVES_TO",
+        }
+
+        query, params = repo._build_relationship_query(rel_obj, sketch_id="sketch-1")
+
+        assert "edge_key" not in query
+        assert "edge_key" not in params
+
 
 class TestBatchOperations:
     def test_add_to_batch_node(self):

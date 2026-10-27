@@ -26,7 +26,9 @@ from .flowsint_base import FlowsintType
 from .individual import Individual
 from .ip import Ip
 from .leak import Leak
+from .merchant import Merchant
 from .message import Message
+from .mobile_money_account import MobileMoneyAccount
 from .organization import Organization
 from .phone import Phone
 from .phrase import Phrase
@@ -34,6 +36,7 @@ from .registry import TYPE_REGISTRY, flowsint_type, get_type, load_all_types
 from .reputation_score import ReputationScore
 from .risk_profile import RiskProfile
 from .social_account import SocialAccount
+from .transaction import Transaction
 from .username import Username
 from .wallet import CryptoNFT, CryptoWallet, CryptoWalletTransaction
 from .website import Website
@@ -59,13 +62,16 @@ __all__ = [
     "Individual",
     "Ip",
     "Leak",
+    "Merchant",
     "Message",
+    "MobileMoneyAccount",
     "Organization",
     "Phone",
     "Phrase",
     "ReputationScore",
     "RiskProfile",
     "SocialAccount",
+    "Transaction",
     "Username",
     "CryptoWallet",
     "CryptoWalletTransaction",
@@ -98,6 +104,9 @@ TYPE_TO_MODEL: Dict[str, Type[BaseModel]] = {
     "cryptowallet": CryptoWallet,
     "cryptowallettransaction": CryptoWalletTransaction,
     "cryptonft": CryptoNFT,
+    "transaction": Transaction,
+    "mobilemoneyaccount": MobileMoneyAccount,
+    "merchant": Merchant,
     "website": Website,
     "phrase": Phrase,
     "breach": Breach,

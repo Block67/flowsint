@@ -345,6 +345,8 @@ class TypeRegistryService(BaseService):
                 "children": [
                     ("BankAccount", "account_number", "creditcard"),
                     ("CreditCard", "card_number", "creditcard"),
+                    ("MobileMoneyAccount", "phone_number", None),
+                    ("Merchant", "name", None),
                 ],
             },
             {

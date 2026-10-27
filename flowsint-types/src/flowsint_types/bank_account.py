@@ -75,11 +75,9 @@ class BankAccount(FlowsintType):
         parts = []
         if self.bank_name:
             parts.append(self.bank_name)
-        parts.append(
-            f"****{self.account_number[-4:]}"
-            if len(self.account_number) > 4
-            else self.account_number
-        )
+        # Full number on purpose: nodeLabel is the graph merge key, a masked
+        # "****1234" would merge distinct accounts sharing the last 4 digits.
+        parts.append(self.account_number)
         self.nodeLabel = " - ".join(parts)
         return self
 

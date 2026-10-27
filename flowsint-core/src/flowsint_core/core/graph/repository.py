@@ -144,12 +144,19 @@ class Neo4jGraphRepository:
             "props": rel_obj,
         }
 
+        # With an edge_key, one relationship per key (e.g. per transaction)
+        # instead of one per (from, to, label).
+        merge_props = "sketch_id: $sketch_id"
+        if rel_obj.get("edge_key") is not None:
+            params["edge_key"] = rel_obj["edge_key"]
+            merge_props += ", edge_key: $edge_key"
+
         query = f"""
         MATCH (from:{from_type} {{nodeLabel: $from_label, sketch_id: $sketch_id}})
         WHERE from.deleted_at IS NULL
         MATCH (to:{to_type} {{nodeLabel: $to_label, sketch_id: $sketch_id}})
         WHERE to.deleted_at IS NULL
-        MERGE (from)-[r:{rel_label} {{sketch_id: $sketch_id}}]->(to)
+        MERGE (from)-[r:{rel_label} {{{merge_props}}}]->(to)
         SET r += $props
         SET r.deleted_at = null
         """

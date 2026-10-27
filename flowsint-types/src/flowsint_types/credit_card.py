@@ -72,11 +72,9 @@ class CreditCard(FlowsintType):
         parts = []
         if self.card_type:
             parts.append(self.card_type)
-        parts.append(
-            f"****{self.card_number[-4:]}"
-            if len(self.card_number) > 4
-            else self.card_number
-        )
+        # Full number on purpose: nodeLabel is the graph merge key, a masked
+        # "****1234" would merge distinct accounts sharing the last 4 digits.
+        parts.append(self.card_number)
         self.nodeLabel = " ".join(parts)
         return self
 

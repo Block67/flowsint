@@ -248,6 +248,22 @@ class TestCreateRelationship:
 
         mock_repo.create_relationship.assert_called_once()
 
+    def test_create_relationship_passes_properties_and_edge_key(self):
+        mock_repo = MagicMock()
+        service = GraphService(sketch_id="sketch-1", repository=mock_repo)
+
+        service.create_relationship(
+            Domain(domain="a.com"),
+            Domain(domain="b.com"),
+            "TRANSACTION",
+            properties={"amount": 3.0},
+            edge_key="tx-9",
+        )
+
+        rel_obj = mock_repo.create_relationship.call_args.kwargs["rel_obj"]
+        assert rel_obj["amount"] == 3.0
+        assert rel_obj["edge_key"] == "tx-9"
+
     def test_create_relationship_with_batching(self):
         mock_repo = MagicMock()
         service = GraphService(

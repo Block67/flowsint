@@ -163,6 +163,8 @@ class GraphService:
         from_obj: BaseModel,
         to_obj: BaseModel,
         rel_label: str = "IS_RELATED_TO",
+        properties: Optional[Dict[str, Any]] = None,
+        edge_key: Optional[str] = None,
     ) -> None:
         """
         Create a relationship between two nodes.
@@ -174,11 +176,13 @@ class GraphService:
             from_obj: A GraphNode object (source)
             to_obj: A GraphNode object (target)
             rel_label: Relationship label (ex: "IS_CONNECTED_TO")
-            **properties: Additional relationship properties
+            properties: Flat relationship properties
+            edge_key: Makes the relationship unique per key instead of per
+                (from, to, label), e.g. one edge per transaction
         """
 
         neo4j_rel_dict: GraphDict = GraphSerializer.graph_edge_to_neo4j_dict(
-            from_obj, to_obj, rel_label
+            from_obj, to_obj, rel_label, properties=properties, edge_key=edge_key
         )
 
         if self._enable_batching:

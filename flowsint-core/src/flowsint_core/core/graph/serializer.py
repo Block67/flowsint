@@ -183,11 +183,16 @@ class GraphSerializer:
     @staticmethod
     def neo4j_dict_to_graph_edge(edge_dict: Dict[str, Any]) -> GraphEdge:
         """Convert a Neo4j relationship record to a GraphEdge instance."""
+        data = edge_dict.get("data") or {}
         return GraphEdge(
             id=str(edge_dict.get("id")),
             source=str(edge_dict.get("source")),
             target=str(edge_dict.get("target")),
             label=str(edge_dict.get("type")),
+            date=data.get("date"),
+            caption=data.get("caption"),
+            type=data.get("type"),
+            weight=data.get("weight"),
         )
 
     @staticmethod
@@ -195,11 +200,17 @@ class GraphSerializer:
         from_obj: Union[FlowsintType, GraphNode],
         to_obj: Union[FlowsintType, GraphNode],
         label: str,
+        properties: Optional[Dict[str, Any]] = None,
+        edge_key: Optional[str] = None,
     ) -> Dict[str, Any]:
         """Build a Neo4j relationship dict for matching nodes by type and label.
 
         Creates a relationship descriptor that identifies source and target nodes
         by their nodeType and nodeLabel, allowing relationship creation without IDs.
+
+        `properties` must be flat primitives (stored as-is on the relationship).
+        `edge_key` makes the relationship unique per key instead of per
+        (from, to, label), e.g. one TRANSACTION edge per transaction.
         """
         from_type = (
             from_obj.__class__.__name__.lower()
@@ -211,13 +222,17 @@ class GraphSerializer:
             if isinstance(to_obj, FlowsintType)
             else to_obj.nodeType
         )
-        return {
+        rel_dict: Dict[str, Any] = {
+            **(properties or {}),
             "from_type": from_type,
             "from_label": from_obj.nodeLabel,
             "to_type": to_type,
             "to_label": to_obj.nodeLabel,
             "rel_label": label,
         }
+        if edge_key is not None:
+            rel_dict["edge_key"] = edge_key
+        return rel_dict
 
     @staticmethod
     def deserialize_nodes(

@@ -473,6 +473,8 @@ class Enricher(ABC):
         from_obj: BaseModel,
         to_obj: BaseModel,
         rel_label: str = "IS_RELATED_TO",
+        properties: Optional[Dict[str, Any]] = None,
+        edge_key: Optional[str] = None,
     ) -> None:
         """
         Create a relationship between two nodes.
@@ -481,15 +483,26 @@ class Enricher(ABC):
             ```python
             self.create_relationship(individual, domain, "HAS_DOMAIN")
             self.create_relationship(email, breach, "FOUND_IN_BREACH")
+            self.create_relationship(
+                tx.source, tx.target, "TRANSACTION",
+                properties=tx.edge_properties(), edge_key=tx.transaction_id,
+            )
             ```
 
         Args:
             from_obj: Either a Pydantic object (source) or source node label
             to_obj: Either a Pydantic object (target) or source node key property
             rel_label: Either relationship type (Pydantic) or source node key value
+            properties: Flat relationship properties
+            edge_key: Makes the relationship unique per key instead of per
+                (from, to, label), e.g. one edge per transaction
         """
         self._graph_service.create_relationship(
-            from_obj=from_obj, to_obj=to_obj, rel_label=rel_label
+            from_obj=from_obj,
+            to_obj=to_obj,
+            rel_label=rel_label,
+            properties=properties,
+            edge_key=edge_key,
         )
 
     def log_graph_message(self, message: str) -> None:
