@@ -17,85 +17,61 @@ const InfoDialog = () => {
         <DialogContent className="sm:max-w-2xl">
           <div className="p-2">
             <div className="p-2 text-sm space-y-4 overflow-y-auto max-h-[80vh]">
-              <h2 className="text-base font-semibold flex items-center gap-2">About Flowsint</h2>
+              <h2 className="text-base font-semibold flex items-center gap-2">About Flowtrace</h2>
               <p>
-                <strong>Flowsint</strong> is an{' '}
-                <strong>investigation and intelligence platform</strong> built to support complex
-                research workflows involving{' '}
-                <strong>people, organizations, infrastructure, and online activity</strong>.
+                <strong>Flowtrace</strong> is a <strong>transaction analysis platform</strong> for
+                following money across{' '}
+                <strong>bank accounts, mobile money and crypto wallets</strong>. Every account is a
+                node and every transaction is an edge, so flows of funds can be read directly on the
+                graph.
               </p>
 
-              <p>
-                Whether you&apos;re conducting <strong>cyber investigations</strong>, mapping out{' '}
-                <strong>fraud networks</strong>, or gathering intelligence for{' '}
-                <strong>threat assessments</strong>, Flowsint helps you collect, visualize, and
-                understand fragmented data points in a structured and interactive way.
-              </p>
-
-              <h3 className="font-semibold">What Flowsint Does</h3>
+              <h3 className="font-semibold">What Flowtrace Does</h3>
               <ul className="list-disc list-inside space-y-1">
                 <li>
-                  <strong>Connects scattered data</strong> — emails, domains, social accounts, IPs,
-                  phone numbers, addresses, and more — into a single{' '}
-                  <strong>investigative graph</strong>.
+                  <strong>Imports statements</strong> from CSV or Excel files (bank, mobile money,
+                  card) with automatic column mapping.
                 </li>
                 <li>
-                  Offers <strong>visual enrichers</strong> to pivot from one entity to related ones:
-                  find <strong>connected individuals</strong>, discover{' '}
-                  <strong>infrastructure</strong>, uncover <strong>aliases</strong>.
+                  <strong>Pulls on-chain transfers</strong> for Ethereum and EVM chains, ERC-20 and
+                  TRC-20 tokens, and Bitcoin, and checks addresses against the{' '}
+                  <strong>OFAC sanctions lists</strong>.
                 </li>
                 <li>
-                  <strong>Tracks and saves investigation states</strong> over time, letting you
-                  explore multiple hypotheses or revisit older threads without losing context.
+                  <strong>Detects suspicious patterns</strong>: fan-in, fan-out, pass-through (money
+                  mule) accounts, structuring below a threshold and circular flows.
                 </li>
                 <li>
-                  Supports <strong>live data enrichment</strong> from custom or built-in enrichers,
-                  giving you <strong>actionable insights</strong> as you explore.
-                </li>
-              </ul>
-
-              <h3 className="font-semibold">Why Use Flowsint?</h3>
-              <ul className="list-disc list-inside space-y-1">
-                <li>
-                  Built for <strong>speed and clarity</strong> — fast graph rendering, clean UI,
-                  responsive enrichers.
-                </li>
-                <li>
-                  <strong>Flexible graph model</strong> that mirrors how investigators think — not
-                  just tables and tags, but <strong>relationships</strong>.
-                </li>
-                <li>
-                  Ideal for <strong>solo analysts and teams</strong> that need to move fast, explore
-                  freely, and make sense of <strong>partial or messy data</strong>.
+                  <strong>Traces funds</strong> upstream or downstream from any account, and
+                  summarizes what each account received, sent and kept.
                 </li>
               </ul>
 
               <h3 className="font-semibold">Use Cases</h3>
               <ul className="list-disc list-inside space-y-1">
                 <li>
-                  Mapping <strong>digital infrastructure</strong> of individuals or organizations
+                  Fraud and <strong>scam investigations</strong>: where did the victim&apos;s money
+                  go?
                 </li>
                 <li>
-                  Investigating <strong>online fraud schemes</strong> or{' '}
-                  <strong>fake identities</strong>
+                  <strong>AML reviews</strong> of mule networks and layering
                 </li>
                 <li>
-                  Uncovering <strong>links between actors</strong> across platforms
-                </li>
-                <li>
-                  Visualizing the reach of <strong>leaked or exposed data</strong>
-                </li>
-                <li>
-                  Tracking <strong>threat actor behavior</strong> across social and technical
-                  surfaces
+                  Crypto <strong>wallet tracing</strong> and sanctions exposure
                 </li>
               </ul>
 
-              <p>
-                Flowsint is designed for <strong>professionals</strong> who need{' '}
-                <strong>full control</strong> over their investigation logic, from how data is
-                structured to how relationships are interpreted. It&apos;s not just a tool —
-                it&apos;s a <strong>flexible workspace</strong> for building intelligence.
+              <p className="text-xs text-muted-foreground">
+                Flowtrace is based on{' '}
+                <a
+                  href="https://github.com/reconurge/flowsint"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="underline"
+                >
+                  Flowsint
+                </a>
+                , licensed under Apache 2.0.
               </p>
             </div>
           </div>

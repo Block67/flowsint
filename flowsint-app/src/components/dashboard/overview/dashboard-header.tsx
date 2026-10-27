@@ -17,7 +17,7 @@ export function DashboardHeader({ view, setView, search, setSearch }: DashboardH
         <div>
           <h1 className="text-2xl font-semibold text-foreground">Investigations</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Manage and track your OSINT investigations
+            Manage and track your financial investigations
           </p>
         </div>
         <NewInvestigation noDropDown>
